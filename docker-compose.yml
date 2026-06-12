@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15
+    container_name: climatesense_db
+    environment:
+      POSTGRES_USER: climatesense_user
+      POSTGRES_PASSWORD: climatesense_password
+      POSTGRES_DB: climatesense
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: climatesense_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@climatesense.ai
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - db
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: climatesense_backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    environment:
+      - DATABASE_URL=postgresql://climatesense_user:climatesense_password@db:5432/climatesense
+      - SECRET_KEY=supersecretjwtkey_replace_in_production
+    depends_on:
+      - db
+    restart: unless-stopped
+
+  # frontend service omitted for local dev via npm run dev, or we can include it.
+  # We will rely on npm run dev for frontend locally for HMR.
+
+volumes:
+  postgres_data:
